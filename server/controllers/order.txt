@@ -1,0 +1,443 @@
+import paypal from "paypal-rest-sdk";
+import dotenv from "dotenv";
+import userModel from "../models/userModel.js";
+import productModel from "../models/productModel.js";
+import orderModel from "../models/orderModel.js";
+dotenv.config();
+
+// PayPal Configuration
+paypal.configure({
+  mode: "sandbox",
+  client_id: process.env.PAYPAL_CLIENT_ID,
+  client_secret: process.env.PAYPAL_CLIENT_SECRET,
+});
+
+// PayPal Payment
+export const paypalPayment = async (req, res) => {
+  try {
+    const { products, amount, currency } = req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Products are required for payment.",
+      });
+    }
+
+    // Map products to PayPal item format
+    const items = products.map((product) => ({
+      name: product.name,
+      sku: product.sku || "SKU_NOT_PROVIDED",
+      price: product.price.toFixed(2),
+      currency: currency || "USD",
+      quantity: product.quantity,
+    }));
+
+    const paymentData = {
+      intent: "sale",
+      payer: { payment_method: "paypal" },
+      redirect_urls: {
+        return_url: "http://localhost:3000/payment/success",
+        cancel_url: "http://localhost:3000/payment/cancel",
+      },
+      transactions: [
+        {
+          item_list: { items },
+          amount: {
+            total: amount.toFixed(2),
+            currency: currency || "USD",
+          },
+          description: "Payment for your order",
+        },
+      ],
+    };
+
+    paypal.payment.create(paymentData, (err, payment) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      const approvalUrl = payment.links.find(
+        (link) => link.rel === "approval_url"
+      );
+      if (!approvalUrl) {
+        return res.status(500).json({
+          success: false,
+          message: "Approval URL not found.",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        approvalUrl: approvalUrl.href,
+      });
+    });
+  } catch (error) {
+    console.error("Error in PayPal payment:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+// Create Order
+export const createOrder = async (req, res) => {
+  try {
+    const {
+      user,
+      products,
+      totalAmount,
+      shippingFee,
+      shippingAddress,
+      paymentMethod,
+    } = req.body;
+
+    // Validate user
+    const existingUser = await userModel.findById(user);
+
+    if (!existingUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    // Validate products
+    const productDetails = await Promise.all(
+      products.map(async (item) => {
+        const product = await productModel.findById(item.product);
+        if (!product) {
+          throw new Error(`Product with ID ${item.product} not found.`);
+        }
+        return {
+          product: product._id,
+          quantity: item.quantity,
+          price: product.price,
+        };
+      })
+    );
+
+    const calculatedTotal =
+      productDetails.reduce(
+        (sum, item) => sum + item.quantity * item.price,
+        0
+      ) + shippingFee;
+
+    if (calculatedTotal !== totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Total amount mismatch. Please verify the order details.",
+      });
+    }
+
+    // Create the order
+    const order = await orderModel.create({
+      user,
+      products: productDetails,
+      totalAmount: calculatedTotal,
+      shippingFee,
+      shippingAddress,
+      paymentMethod,
+    });
+
+    res
+      .status(200)
+      .send({ success: true, message: "Order created successfully.", order });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error ",
+    });
+  }
+};
+
+===================================Second===============================>
+import paypal from "paypal-rest-sdk";
+import dotenv from "dotenv";
+import userModel from "../models/userModel.js";
+import productModel from "../models/productModel.js";
+import orderModel from "../models/orderModel.js";
+
+dotenv.config();
+
+// PayPal Configuration
+paypal.configure({
+  mode: "sandbox", // Use "live" for production
+  client_id: process.env.PAYPAL_CLIENT_ID,
+  client_secret: process.env.PAYPAL_CLIENT_SECRET,
+});
+
+// Initiate PayPal Payment
+export const paypalPayment = async (req, res) => {
+  try {
+    const { user, products, shippingFee, shippingAddress, paymentMethod } =
+      req.body;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Products are required for payment.",
+      });
+    }
+
+    // Map products to PayPal item format
+    const items = products.map((product) => ({
+      name: product.name,
+      sku: product.sku || "SKU_NOT_PROVIDED",
+      price: product.price.toFixed(2),
+      currency: "USD",
+      quantity: product.quantity,
+    }));
+
+    const totalAmount = products.reduce(
+      (sum, product) => sum + product.price * product.quantity,
+      shippingFee
+    );
+
+    const paymentData = {
+      intent: "sale",
+      payer: { payment_method: "paypal" },
+      redirect_urls: {
+        return_url: "http://localhost:3000/payment/success",
+        cancel_url: "http://localhost:3000/payment/cancel",
+      },
+      transactions: [
+        {
+          item_list: { items },
+          amount: {
+            total: totalAmount.toFixed(2),
+            currency: "USD",
+          },
+          description: "Payment for your order",
+        },
+      ],
+    };
+
+    paypal.payment.create(paymentData, (err, payment) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      const approvalUrl = payment.links.find(
+        (link) => link.rel === "approval_url"
+      );
+      if (!approvalUrl) {
+        return res.status(500).json({
+          success: false,
+          message: "Approval URL not found.",
+        });
+      }
+
+      // Save order details temporarily
+      req.session.orderDetails = {
+        user,
+        products,
+        totalAmount,
+        shippingFee,
+        shippingAddress,
+        paymentMethod,
+      };
+
+      res.status(200).json({
+        success: true,
+        approvalUrl: approvalUrl.href,
+      });
+    });
+  } catch (error) {
+    console.error("Error in PayPal payment:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+};
+
+// Execute Payment and Create Order
+export const executePaymentAndCreateOrder = async (req, res) => {
+  const { paymentId, payerId } = req.body;
+
+  const executePaymentJson = {
+    payer_id: payerId,
+  };
+
+  paypal.payment.execute(
+    paymentId,
+    executePaymentJson,
+    async (err, payment) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      if (payment.state === "approved") {
+        try {
+          // Retrieve saved order details
+          const {
+            user,
+            products,
+            totalAmount,
+            shippingFee,
+            shippingAddress,
+            paymentMethod,
+          } = req.session.orderDetails;
+
+          // Validate user
+          const existingUser = await userModel.findById(user);
+          if (!existingUser) {
+            return res.status(404).json({
+              success: false,
+              message: "User not found.",
+            });
+          }
+
+          // Create order in the database
+          const productDetails = await Promise.all(
+            products.map(async (item) => {
+              const product = await productModel.findById(item.product);
+              if (!product) {
+                throw new Error(`Product with ID ${item.product} not found.`);
+              }
+              return {
+                product: product._id,
+                quantity: item.quantity,
+                price: product.price,
+              };
+            })
+          );
+
+          const order = await orderModel.create({
+            user,
+            products: productDetails,
+            totalAmount,
+            shippingFee,
+            shippingAddress,
+            paymentMethod,
+          });
+
+          res.status(200).json({
+            success: true,
+            message: "Payment successful, order created.",
+            order,
+          });
+        } catch (error) {
+          console.error("Error creating order:", error);
+          res.status(500).json({
+            success: false,
+            message: "Failed to create order.",
+          });
+        }
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Payment not approved.",
+        });
+      }
+    }
+  );
+};
+
+
+=====================================Stripe==================>
+export const createOrderStripe = async (req, res) => {
+  try {
+    const {
+      user,
+      products,
+      shippingFee,
+      shippingAddress,
+      paymentMethod,
+      token,
+    } = req.body;
+
+    // Validate products
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Products are required for payment.",
+      });
+    }
+
+    // Calculate the total amount
+    const totalAmount = products.reduce(
+      (sum, product) => sum + product.price * product.quantity,
+      shippingFee
+    );
+
+    // Check user existence
+    const existingUser = await userModel.findById(user);
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Create Stripe payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalAmount,
+      currency: "USD",
+      metadata: {
+        company: "Ayoob Ecommerce",
+      },
+      payment_method: token,
+      // confirmation_method: "manual",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      confirm: true,
+    });
+
+    // Check if the payment was successful
+    if (paymentIntent.status === "succeeded") {
+      // Create the order in the database
+      const productDetails = await Promise.all(
+        products.map(async (item) => {
+          const product = await productModel.findById(item.product);
+          if (!product) {
+            throw new Error(`Product with ID ${item.product} not found.`);
+          }
+          return {
+            product: product._id,
+            quantity: item.quantity,
+            price: product.price,
+          };
+        })
+      );
+
+      const order = await orderModel.create({
+        user,
+        products: productDetails,
+        totalAmount,
+        shippingFee,
+        shippingAddress,
+        paymentMethod,
+        paymentStatus: "Completed",
+        orderStatus: "Pending",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Payment successful, order created.",
+        order,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Payment failed.",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error occured while create order, please try again!",
+      error: error,
+    });
+  }
+};

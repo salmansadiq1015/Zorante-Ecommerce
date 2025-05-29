@@ -1,0 +1,395 @@
+{selectedChat ? (
+          <div className="relative col-span-11 custom-md:col-span-8 h-full bg-orange-500 ">
+            {!show && (
+              <div className="flex custom-md:hidden absolute top-2 left-[2px] z-10">
+                <span
+                  onClick={() => setShow(true)}
+                  className="p-[2px] bg-gray-100/60 rounded-full hover:bg-gray-200/70 dark:bg-gray-600/50 hover:dark:bg-gray-500/50"
+                >
+                  <FiChevronsRight className="h-5 w-5" />
+                </span>
+              </div>
+            )}
+            <div className="w-full h-[calc(100vh-5.4rem)] sm:h-[calc(100vh-3.6rem)] bg-white dark:bg-slate-950 flex flex-col">
+              {/* Header Section */}
+              <div className="h-[3.2rem] flex items-center justify-between bg-gradient-to-r from-orange-500 via-orange-500 to-yellow-500 px-2 py-2">
+                {/* UserInfo */}
+                <div className="flex items-center gap- ml-[1.5rem] 1 sm:ml-0 ">
+                  <div className="relative w-[2.6rem] h-[2.6rem] rounded-full overflow-hidden">
+                    <Image
+                      src={
+                        selectedChat?.isGroupChat
+                          ? selectedChat?.avatar
+                          : selectedChat?.users[1]?._id === auth.user?._id
+                          ? selectedChat?.users[0]?.profilePicture
+                          : selectedChat?.users[1]?.profilePicture
+                      }
+                      alt={`User`}
+                      layout="fill"
+                      className="rounded-full ring-2 ring-green-200 dark:ring-green-200"
+                    />
+                  </div>
+                  <div className="flex flex-col leading-tight ml-1 ">
+                    <span className="text-[17px] font-medium text-gray-50">
+                      {selectedChat?.isGroupChat
+                        ? selectedChat?.chatName
+                        : selectedChat?.users[1]?._id === auth.user?._id
+                        ? `${selectedChat?.users[0]?.firstName} ${selectedChat?.users[0]?.lastName}`
+                        : `${selectedChat?.users[1]?.firstName} ${selectedChat?.users[1]?.lastName}`}
+                    </span>
+                    {isTyping && (
+                      <span className="text-sky-600 text-[13px]">
+                        Typing
+                        <span className="dot-1 font-bold text-[18px]">.</span>
+                        <span className="dot-2 font-bold text-[18px]">.</span>
+                        <span className="dot-3 font-bold text-[18px]">.</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Call Info */}
+                <div className=" relative flex items-center gap-4">
+                  {/* ---- Setting Info---- */}
+                  <span
+                    data-tooltip-id="my-tooltip"
+                    data-tooltip-content="Conversation Information"
+                    className="relative p-1 bg-gray-100/80 rounded-full hover:bg-gray-200/70 "
+                    onClick={() => setShowDetail(!showDetail)}
+                  >
+                    <BsThreeDotsVertical className="h-5 w-5 text-orange-500 hover:text-orange-600 cursor-pointer" />
+                  </span>
+                  {showDetail && (
+                    <div
+                      ref={closeDetail}
+                      className="absolute top-[2rem] left-[-7.5rem] w-[14rem] flex flex-col gap-2 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 py-3 px-3 z-10"
+                    >
+                      <div
+                        onClick={() => {
+                          localStorage.removeItem("newChat");
+                          setSelectedChat(null);
+                          setShowDetail(false);
+                        }}
+                        className="flex items-center gap-1 rounded-sm hover:text-orange-600 border py-1 px-2 cursor-pointer hover:border-orange-500 transition-all duration-300"
+                      >
+                        <span>
+                          <MdOutlineClosedCaptionDisabled className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">
+                          Close Conversation
+                        </span>
+                      </div>
+
+                      {/*  */}
+                      <div
+                        onClick={() =>
+                          handleDeleteConfirmation(selectedChat._id)
+                        }
+                        className="flex items-center gap-1 rounded-sm hover:text-red-600 border py-1 px-2 cursor-pointer hover:border-red-500 transition-all duration-300"
+                      >
+                        <span>
+                          <AiOutlineDelete className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">Delete</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Messages Section shidden */}
+
+              <div
+                id="message-Container"
+                className="flex-grow overflow-y-auto flex flex-col gap-3 bg-white dark:bg-slate-950 px-2 py-2"
+              >
+                {messageLoad ? (
+                  <MessageLoader />
+                ) : (
+                  <>
+                    {chatMessages?.map((message) => (
+                      <div
+                        className={`flex items-start gap-1 max-w-[80%] sm:max-w-[50%] ${
+                          message?.sender?._id === auth?.user?._id
+                            ? "ml-auto flex-row-reverse"
+                            : "mr-auto flex-row"
+                        }`}
+                        key={message._id}
+                      >
+                        <div className="w-[2.5rem] h-[2.5rem]">
+                          <div className="relative w-[2.2rem] h-[2.2rem] rounded-full overflow-hidden">
+                            <Image
+                              src={message?.sender?.profilePicture}
+                              alt={`Avatar`}
+                              layout="fill"
+                              className="rounded-full"
+                            />
+                          </div>
+                        </div>
+                        {message.contentType === "text" ? (
+                          <div
+                            className={`  rounded-lg text-[14px] px-3 py-2 mt-4 ${
+                              message?.sender?._id === auth?.user?._id
+                                ? "bg-orange-500 text-white rounded-tr-none"
+                                : "bg-gray-200 text-black dark:text-white dark:bg-gray-700 rounded-tl-none"
+                            }`}
+                          >
+                            <p>{message?.content}</p>
+                          </div>
+                        ) : message.contentType === "like" ? (
+                          <div className="text-4xl">{message?.content}</div>
+                        ) : message.contentType === "Image" ? (
+                          <a
+                            href={message?.content}
+                            download
+                            target="_blank"
+                            className="relative mt-4  w-[14rem] h-[10rem] overflow-hidden cursor-pointer rounded-lg shadow-lg"
+                          >
+                            <Image
+                              src={message?.content}
+                              alt="Sent image"
+                              layout="fill"
+                              objectFit="cover"
+                              className="rounded-lg"
+                            />
+                          </a>
+                        ) : message.contentType === "Video" ? (
+                          <div className="relative mt-4 dark:bg-slate-800/80 border dark:border-gray-700 w-[14rem] h-[10rem] overflow-hidden rounded-lg shadow-lg">
+                            <video
+                              controls
+                              className="w-full h-full rounded-lg"
+                            >
+                              <source src={message?.content} type="video/mp4" />
+                              Your browser does not support the video tag.
+                            </video>
+                          </div>
+                        ) : message.contentType === "Audio" ? (
+                          <div className="flex items-center mt-4 w-[14rem] h-[3rem] p-1  rounded-lg">
+                            <audio
+                              controls
+                              className="w-full h-full bg-transparent rounded-lg"
+                            >
+                              <source
+                                src={message?.content}
+                                type="audio/mpeg"
+                              />
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
+                        ) : (
+                          <div className="mt-4">
+                            <a
+                              href={message?.content}
+                              download
+                              target="_blank"
+                              className="flex items-center gap-2 py-[.5rem] px-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-lg shadow-md"
+                            >
+                              <TbFileDownload className="h-5 w-5 text-white" />
+                              <span className=" text-[14px]">
+                                Download File
+                              </span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Send Message Section */}
+              <div className=" relative min-h-[3.4rem] max-h-[3.5rem] h-[2.4rem] flex items-center gap-4 bg-gray-100 dark:bg-gray-900 px-2 py-2 ">
+                <div className="relative">
+                  <span
+                    data-tooltip-id="my-tooltip"
+                    data-tooltip-content="Open more options"
+                    onClick={() => setIsShow(!isShow)}
+                  >
+                    <BiSolidPlusCircle
+                      data-tooltip-id="my-tooltip"
+                      data-tooltip-content="Open more options"
+                      className=" w-5 h-5 sm:h-6 sm:w-6 text-orange-500 cursor-pointer"
+                    />
+                  </span>
+                  {isShow && (
+                    <div
+                      ref={closeUploads}
+                      className="absolute top-[-11.5rem] right-[-14rem] w-[14rem] flex flex-col gap-2 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 py-3 px-3 z-10"
+                    >
+                      <label
+                        htmlFor="images"
+                        className="flex items-center gap-1 rounded-sm hover:text-orange-600 border py-1 px-2 cursor-pointer hover:border-orange-500 transition-all duration-300"
+                      >
+                        <span>
+                          <PiImageDuotone className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">
+                          Upload Images
+                        </span>
+
+                        <input
+                          type="file"
+                          id="images"
+                          accept="image/*"
+                          onChange={(e) => {
+                            fileType(
+                              e.target.files[0],
+                              handleSendfiles,
+                              setLoading,
+                              setIsShow
+                            );
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {/*  */}
+                      <label
+                        htmlFor="audio"
+                        className="flex items-center gap-1 rounded-sm hover:text-orange-600 border py-1 px-2 cursor-pointer hover:border-orange-500 transition-all duration-300"
+                      >
+                        <span>
+                          <MdOutlineAudiotrack className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">
+                          Upload Audio
+                        </span>
+                        <input
+                          type="file"
+                          id="audio"
+                          accept="audio/*"
+                          onChange={(e) => {
+                            fileType(
+                              e.target.files[0],
+                              handleSendfiles,
+                              setLoading,
+                              setIsShow
+                            );
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {/*  */}
+                      <label
+                        htmlFor="videos"
+                        className="flex items-center gap-1 rounded-sm hover:text-orange-600 border py-1 px-2 cursor-pointer hover:border-orange-500 transition-all duration-300"
+                      >
+                        <span>
+                          <AiTwotoneCamera className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">
+                          Upload Videos
+                        </span>
+                        <input
+                          type="file"
+                          id="videos"
+                          accept="video/*"
+                          onChange={(e) => {
+                            fileType(
+                              e.target.files[0],
+                              handleSendfiles,
+                              setLoading,
+                              setIsShow
+                            );
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {/*  */}
+                      <label
+                        htmlFor="doucments"
+                        className="flex items-center gap-1 rounded-sm hover:text-orange-600 border py-1 px-2 cursor-pointer hover:border-orange-500 transition-all duration-300"
+                      >
+                        <span>
+                          <CgFileDocument className="h-5 w-5 " />
+                        </span>
+                        <span className="text-[15px] font-medium">
+                          Upload Files
+                        </span>
+                        <input
+                          type="file"
+                          id="doucments"
+                          accept=".pdf, .doc, .docx, .ppt, .pptx, .xls, .xlsx, .txt, .zip"
+                          onChange={(e) => {
+                            fileType(
+                              e.target.files[0],
+                              handleSendfiles,
+                              setLoading,
+                              setIsShow
+                            );
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <span
+                    data-tooltip-id="my-tooltip"
+                    data-tooltip-content="Select Emoji"
+                    onClick={() => setShowEmoji(!showEmoji)}
+                  >
+                    <BsEmojiSunglasses className=" w-5 h-5  text-orange-500 cursor-pointer" />
+                  </span>
+                  {showEmoji && (
+                    <div
+                      ref={closeEmoji}
+                      className="absolute top-[-21rem] right-[-18rem]  flex flex-col gap-2 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 py-1 px-1 z-20"
+                    >
+                      <EmojiPicker onEmojiClick={onEmojiClick} />
+                    </div>
+                  )}
+                </div>
+                <div className="w-full h-full ">
+                  <form
+                    onSubmit={handleSendMessage}
+                    className="w-full h-full rounded-lg flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      disabled={loading}
+                      value={message}
+                      onChange={typingHandler}
+                      placeholder="Type your message here..."
+                      className="w-full h-full px-4 rounded-[2rem] border outline-none focus:border-orange-500"
+                    />
+                    {message.length > 0 ? (
+                      <button
+                        type="submit"
+                        className=""
+                        data-tooltip-id="my-tooltip"
+                        data-tooltip-content="Press enter to send"
+                      >
+                        <IoSend
+                          className={`h-6 w-6 text-orange-600 cursor-pointer`}
+                        />
+                      </button>
+                    ) : (
+                      <>
+                        {loading ? (
+                          <span className="">
+                            <ImSpinner9 className="h-6 w-6 animate-spin text-orange-500" />
+                          </span>
+                        ) : (
+                          <span
+                            data-tooltip-id="my-tooltip"
+                            data-tooltip-content="Send a like"
+                            onClick={() => {
+                              handleSendLike();
+                            }}
+                          >
+                            <AiFillLike
+                              className={`h-6 w-6 text-orange-600 cursor-pointer`}
+                            />
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <NotChat setShow={setShow} show={show} />
+        )}

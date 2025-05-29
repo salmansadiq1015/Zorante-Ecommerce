@@ -1,0 +1,92 @@
+"use client";
+# import React, { useState } from "react";
+# import { motion, AnimatePresence } from "framer-motion";
+# import { ChevronLeft, ChevronRight } from "lucide-react";
+# import Image from "next/image";
+
+
+
+# export default function ProductDetail() {
+#   const [currentIndex, setCurrentIndex] = useState(0);
+
+#   const nextSlide = () => {
+#     setCurrentIndex((prev) => (prev + 1) % productDetail.attachments.length);
+#   };
+
+#   const prevSlide = () => {
+#     setCurrentIndex(
+#       (prev) =>
+#         (prev - 1 + productDetail.attachments.length) %
+#         productDetail.attachments.length
+#     );
+#   };
+#   return (
+#     <div className="w-full h-full flex flex-col gap-5">
+#       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+#         {/* Left */}
+#         <div className="w-full h-full">
+#           <div className="relative w-full max-w-md mx-auto">
+#             {/* Main Image */}
+#             <div className="relative">
+#               <AnimatePresence mode="wait">
+#                 <motion.img
+#                   key={productDetail.attachments[currentIndex]}
+#                   src={productDetail.attachments[currentIndex]}
+#                   alt={`Slide ${currentIndex + 1}`}
+#                   className="w-full  bg-red-500"
+#                   initial={{ opacity: 0, x: 50 }}
+#                   animate={{ opacity: 1, x: 0 }}
+#                   exit={{ opacity: 0, x: -50 }}
+#                   transition={{ duration: 0.5 }}
+#                 />
+#               </AnimatePresence>
+
+#               {/* Navigation Buttons */}
+#               <button
+#                 onClick={prevSlide}
+#                 className="absolute -left-5 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full text-red-600 hover:bg-red-600 hover:text-white transition-all duration-300"
+#                 style={{
+#                   clipPath:
+#                     "polygon(100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%, 25% 6.7%, 75% 6.7%)",
+#                 }}
+#               >
+#                 <ChevronLeft />
+#               </button>
+#               <button
+#                 onClick={nextSlide}
+#                 className="absolute -right-5 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full text-red-600 hover:bg-red-600 hover:text-white transition-all duration-300"
+#                 style={{
+#                   clipPath:
+#                     "polygon(100% 50%, 75% 93.3%, 25% 93.3%, 0% 50%, 25% 6.7%, 75% 6.7%)",
+#                 }}
+#               >
+#                 <ChevronRight />
+#               </button>
+#             </div>
+
+#             {/* Thumbnails */}
+#             <div className="flex justify-center gap-2 mt-4">
+#               {productDetail.attachments.map((thumb, index) => (
+#                 <Image
+#                   key={index}
+#                   src={thumb}
+#                   alt={`Thumbnail ${index + 1}`}
+#                   width={120}
+#                   height={120}
+#                   className={`w-14 h-14 border-2 cursor-pointer rounded-lg ${
+#                     currentIndex === index
+#                       ? "border-red-500"
+#                       : "border-gray-700"
+#                   }`}
+#                   onClick={() => setCurrentIndex(index)}
+#                 />
+#               ))}
+#             </div>
+#           </div>
+#         </div>
+#         {/* Right */}
+#         <div className="">Content</div>
+#       </div>
+#     </div>
+#   );
+# }
