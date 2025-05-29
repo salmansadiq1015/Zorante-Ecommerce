@@ -1,6 +1,7 @@
-fullDescription:
-      "A comprehensive e-commerce solution built with Next.js, Node.js, and MongoDB. The platform includes user authentication, product management, shopping cart functionality, order processing, and payment integration with Stripe.",
-    features: [
+**Description:**
+      A comprehensive e-commerce solution built with Next.js, Node.js, and MongoDB. The platform includes user authentication, product management, shopping cart functionality, order processing, and payment integration with Stripe.,
+   ** Features:**
+    [
       "User authentication and profile management",
       "Product catalog with search and filtering",
       "Shopping cart and checkout process",
@@ -29,7 +30,8 @@ fullDescription:
       "Mobile-responsive design for optimal user experience on all devices",
       "Admin dashboard with user management, product management, and order management features",
     ],
-    technologies: [
+    **Technologies**:
+    [
       "Next.js",
       "React.js",
       "Tailwind CSS",
